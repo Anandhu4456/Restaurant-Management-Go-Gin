@@ -3,9 +3,9 @@ package main
 import (
 	"os"
 
-	"github.com/Anandhu4456/go-restaurant-management/database"
-	"github.com/Anandhu4456/go-restaurant-management/middleware"
-	"github.com/Anandhu4456/go-restaurant-management/routes"
+	database"github.com/Anandhu4456/go-restaurant-management/database"
+	middleware"github.com/Anandhu4456/go-restaurant-management/middleware"
+	routes"github.com/Anandhu4456/go-restaurant-management/routes"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 )
