@@ -22,6 +22,14 @@ func Signup()gin.HandlerFunc{
 
 func Login()gin.HandlerFunc{
 	return func(c *gin.Context){
-		
+
 	}
+}
+
+func HashPassword(password string)string{
+
+}
+
+func VerifyPassword(userPassword, providedPassword string)(bool,string){
+	
 }
