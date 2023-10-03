@@ -8,7 +8,7 @@ import (
 func MenuRoutes(incomingRoute *gin.Engine) {
 	incomingRoute.GET("/menus", controller.GetMenus())
 	incomingRoute.GET("/menus/:menu_id", controller.GetOneMenu())
-	incomingRoute.POST("/menus/createmenu",controller.CreateMenu())
+	incomingRoute.POST("/menus",controller.CreateMenu())
 	incomingRoute.PATCH("menus/:menu_id",controller.UpdateMenu())
 
 }
