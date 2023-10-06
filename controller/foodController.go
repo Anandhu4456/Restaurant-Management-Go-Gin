@@ -3,7 +3,9 @@ package controller
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Anandhu4456/go-restaurant-management/database"
@@ -21,7 +23,44 @@ var validate = validator.New()
 
 func GetAllFoods() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
+		recordPerPage, err := strconv.Atoi(c.Query("recordPerPage"))
+		if err != nil || recordPerPage < 1 {
+			recordPerPage = 10
+		}
+		page, err := strconv.Atoi(c.Query("page"))
+		if err != nil || page < 1 {
+			page = 1
+		}
+		startIndex := (page - 1) * recordPerPage
+		startIndex, err = strconv.Atoi(c.Query("startIndex"))
+
+		matchStage := bson.D{{Key: "$match", Value: bson.D{{}}}}
+		filterStage := bson.D{{Key: "$group", Value: bson.D{{Key: "_id", Value: bson.D{{"_id", "null"}}}, {Key: "total_count", Value: bson.D{{"$sum,1"}}}, {"data", bson.D{{"push", "$$ROOT"}}}}}}
+		projectStage := bson.D{
+			{
+				Key: "$project", Value: bson.D{
+					{Key: "_id", Value: 0},
+					{Key: "total_count", Value: 1},
+					{Key: "food_items", Value: bson.D{{Key: "$slice", Value: []interface{}{"$data", startIndex, recordPerPage}}}},
+				},
+			},
+		}
+		result, err := foodCollection.Aggregate(ctx, mongo.Pipeline{
+			matchStage, filterStage, projectStage,
+		})
+		defer cancel()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occured when listing food items"})
+			return
+		}
+		var allFoods []bson.M
+		err = result.All(ctx, &allFoods)
+		if err != nil {
+			log.Fatal(err)
+		}
+		c.JSON(http.StatusOK, allFoods[0])
 	}
 }
 
@@ -69,14 +108,14 @@ func CreateFood() gin.HandlerFunc {
 		var num = toFixed(*food.Price, 2)
 		food.Price = &num
 
-		result,insertError:=foodCollection.InsertOne(ctx,food)
-		if insertError!=nil{
-			msg:=fmt.Sprintf("food was not created")
-			c.JSON(http.StatusInternalServerError,gin.H{"error":msg})
+		result, insertError := foodCollection.InsertOne(ctx, food)
+		if insertError != nil {
+			msg := fmt.Sprintf("food was not created")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 			return
 		}
 		defer cancel()
-		c.JSON(http.StatusOK,result)
+		c.JSON(http.StatusOK, result)
 	}
 }
 
