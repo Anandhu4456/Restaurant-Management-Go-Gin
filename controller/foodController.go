@@ -39,7 +39,11 @@ func GetAllFoods() gin.HandlerFunc {
 		startIndex, err = strconv.Atoi(c.Query("startIndex"))
 
 		matchStage := bson.D{{Key: "$match", Value: bson.D{{}}}}
-		filterStage := bson.D{{Key: "$group", Value: bson.D{{Key: "_id", Value: bson.D{{"_id", "null"}}}, {Key: "total_count", Value: bson.D{{"$sum,1"}}}, {"data", bson.D{{"push", "$$ROOT"}}}}}}
+		filterStage := bson.D{{Key: "$group",Value: bson.D{
+			{Key: "_id",Value:"null"},
+			{Key: "total_count",Value: bson.D{{Key: "$sum",Value: "1"}}},
+			{Key: "data",Value: bson.D{{Key: "$push",Value: "$$ROOT"}}},
+		}}}
 		projectStage := bson.D{
 			{
 				Key: "$project", Value: bson.D{
