@@ -34,7 +34,7 @@ func GetOneFoodItem() gin.HandlerFunc {
 		defer cancel()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occured when fetching the food item"})
-
+			return
 		}
 		c.JSON(http.StatusOK, food)
 	}
