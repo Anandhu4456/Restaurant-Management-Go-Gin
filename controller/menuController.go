@@ -39,6 +39,7 @@ func GetOneMenu() gin.HandlerFunc {
 		err:=menuCollection.FindOne(ctx,bson.M{"menu_id":menuId}).Decode(&menu)
 		if err!=nil{
 			c.JSON(http.StatusInternalServerError,gin.H{"error":"error occured when fetching the menu"})
+			return
 		}
 		defer cancel()
 		c.JSON(http.StatusOK,menu)
