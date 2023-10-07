@@ -146,5 +146,6 @@ func OrderItemsOrderCreater(order model.Order)string{
 	order.Order_id = order.ID.Hex()
 
 	orderCollection.InsertOne(ctx,order)
+	defer cancel()
 	return order.Order_id
 }
