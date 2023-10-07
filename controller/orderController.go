@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Anandhu4456/go-restaurant-management/database"
+	"github.com/Anandhu4456/go-restaurant-management/model"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -34,7 +35,16 @@ func GetOrders() gin.HandlerFunc {
 
 func GetOneOrder() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
+		var ctx,cancel =context.WithTimeout(context.Background(),100*time.Second)
+		orderId:=c.Param("order_id")
+		var order model.Order
+		err:=orderCollection.FindOne(ctx,bson.M{"order_id":orderId}).Decode(&order)
+		if err!=nil{
+			c.JSON(http.StatusInternalServerError,gin.H{"error":"order not found"})
+			return
+		}
+		defer cancel()
+		c.JSON(http.StatusOK,order)
 	}
 }
 
