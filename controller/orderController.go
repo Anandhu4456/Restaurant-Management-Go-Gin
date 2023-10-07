@@ -53,7 +53,39 @@ func GetOneOrder() gin.HandlerFunc {
 
 func CreateOrder() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		var ctx,cancel = context.WithTimeout(context.Background(),100*time.Second)
 
+		var table model.Table
+		var order model.Order
+		err:=c.BindJSON(&order)
+		if err!=nil{
+			c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+			return
+		}
+		err =validate.Struct(order)
+		if err!=nil{
+			c.JSON(http.StatusInternalServerError,gin.H{"error":err.Error()})
+			return
+		}
+		if order.Table_id!=nil{
+			err:=tableCollection.FindOne(ctx,bson.M{"table_id":order.Table_id}).Decode(&table)
+			if err!=nil{
+				c.JSON(http.StatusInternalServerError,gin.H{"error":"table not found"})
+				return
+			}
+		}
+		order.Created_at = time.Now()
+		order.Updated_at = time.Now()
+		order.ID = primitive.NewObjectID()
+		order.Order_id = order.ID.Hex()
+
+		result,createError:=orderCollection.InsertOne(ctx,order)
+		if createError!=nil{
+			c.JSON(http.StatusInternalServerError,gin.H{"error":"order creation faild"})
+			return
+		}
+		defer cancel()
+		c.JSON(http.StatusOK,result)
 	}
 }
 
