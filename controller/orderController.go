@@ -15,6 +15,7 @@ import (
 )
 
 var orderCollection *mongo.Collection = database.OpenCollection(database.Client, "order")
+var tableCollection *mongo.Collection = database.OpenCollection(database.Client,"table")
 
 func GetOrders() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -71,7 +72,7 @@ func UpdateOrder() gin.HandlerFunc {
 		var updateObj primitive.D
 
 		if order.Table_id!=nil{
-		err:=orderCollection.FindOne(ctx,bson.M{"table_id":order.Table_id}).Decode(&table)
+		err:=tableCollection.FindOne(ctx,bson.M{"table_id":order.Table_id}).Decode(&table)
 		if err!=nil{
 			c.JSON(http.StatusInternalServerError,gin.H{"error":"could't find table"})
 			return
