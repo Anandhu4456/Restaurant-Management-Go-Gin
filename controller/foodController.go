@@ -162,7 +162,7 @@ func UpdateFood() gin.HandlerFunc {
 			if err!=nil{
 				c.JSON(http.StatusInternalServerError,gin.H{"error":"menu not found"})
 			}
-			updateObj = append(updateObj, bson.E{Key: "menu", Value:food.Price})
+			updateObj = append(updateObj, bson.E{Key: "menu", Value:food.Menu_id})
 		}
 
 		food.Updated_at = time.Now()
