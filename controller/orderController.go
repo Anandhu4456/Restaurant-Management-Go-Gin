@@ -16,10 +16,11 @@ import (
 
 var orderCollection *mongo.Collection = database.OpenCollection(database.Client, "order")
 var tableCollection *mongo.Collection = database.OpenCollection(database.Client,"table")
+var ctx,cancel = context.WithTimeout(context.Background(),100*time.Second)
 
 func GetOrders() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		// var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 		result,err:=orderCollection.Find(context.TODO(),bson.M{})
 		if err!=nil{
 			c.JSON(http.StatusInternalServerError,gin.H{"error":err.Error()})
@@ -38,7 +39,7 @@ func GetOrders() gin.HandlerFunc {
 
 func GetOneOrder() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var ctx,cancel =context.WithTimeout(context.Background(),100*time.Second)
+		// var ctx,cancel =context.WithTimeout(context.Background(),100*time.Second)
 		orderId:=c.Param("order_id")
 		var order model.Order
 		err:=orderCollection.FindOne(ctx,bson.M{"order_id":orderId}).Decode(&order)
@@ -53,7 +54,7 @@ func GetOneOrder() gin.HandlerFunc {
 
 func CreateOrder() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var ctx,cancel = context.WithTimeout(context.Background(),100*time.Second)
+		// var ctx,cancel = context.WithTimeout(context.Background(),100*time.Second)
 
 		var table model.Table
 		var order model.Order
@@ -91,7 +92,7 @@ func CreateOrder() gin.HandlerFunc {
 
 func UpdateOrder() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var ctx,cancel = context.WithTimeout(context.Background(),100*time.Second)
+		// var ctx,cancel = context.WithTimeout(context.Background(),100*time.Second)
 
 		orderId:=c.Param("order_id")
 		var order model.Order
@@ -136,4 +137,14 @@ func UpdateOrder() gin.HandlerFunc {
 		c.JSON(http.StatusOK,result)
 		
 	}
+}
+
+func OrderItemsOrderCreater(order model.Order)string{
+	order.Created_at =time.Now()
+	order.Updated_at = time.Now()
+	order.ID = primitive.NewObjectID()
+	order.Order_id = order.ID.Hex()
+
+	orderCollection.InsertOne(ctx,order)
+	return order.Order_id
 }
