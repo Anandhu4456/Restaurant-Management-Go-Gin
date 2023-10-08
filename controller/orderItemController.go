@@ -43,7 +43,17 @@ func GetOrderItems() gin.HandlerFunc {
 
 func GetOneOrderItem() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		var ctx,cancel = context.WithTimeout(context.Background(),100*time.Second)
 
+		var orderItemId = c.Param("order_item_id")
+		var orderItem model.OrderItem
+		err := orderItemsCollection.FindOne(ctx,bson.M{"order_item_id": orderItemId}).Decode(&orderItem)
+		if err!=nil{
+			c.JSON(http.StatusInternalServerError,gin.H{"error":"couldnt get order item id"})
+			return
+		}
+		defer cancel()
+		c.JSON(http.StatusOK,orderItem)
 	}
 }
 
@@ -66,17 +76,7 @@ func ItemsByOrderId(id string) (OrderItems []primitive.M, err error) {
 
 func CreateOrderItem() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var ctx,cancel = context.WithTimeout(context.Background(),100*time.Second)
-
-		var orderItemId = c.Param("order_item_id")
-		var orderItem model.OrderItem
-		err := orderItemsCollection.FindOne(ctx,bson.M{"order_item_id": orderItemId}).Decode(&orderItem)
-		if err!=nil{
-			c.JSON(http.StatusInternalServerError,gin.H{"error":"couldnt get order item id"})
-			return
-		}
-		defer cancel()
-		c.JSON(http.StatusOK,orderItem)
+	
 	}
 }
 
