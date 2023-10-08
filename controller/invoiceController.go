@@ -82,6 +82,43 @@ func GetOneInvoice() gin.HandlerFunc {
 
 func CreateInvoice() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+
+		var invoice model.Invoice
+		var order model.Order
+		err := c.BindJSON(&invoice)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		err = orderCollection.FindOne(ctx, bson.M{"order_id": invoice.Order_id}).Decode(&order)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "order not found"})
+			return
+		}
+		status := "PENDING"
+		if invoice.Payment_status == nil {
+			invoice.Payment_status = &status
+		}
+		invoice.Payment_due_date = time.Now().AddDate(0, 0, 1)
+		invoice.Created_at = time.Now()
+		invoice.Updated_at = time.Now()
+		invoice.ID = primitive.NewObjectID()
+		invoice.Invoice_id = invoice.ID.Hex()
+
+		validateError:=validate.Struct(invoice)
+		if validateError!=nil{
+			c.JSON(http.StatusBadRequest,gin.H{"error":validateError.Error()})
+			return
+		}
+
+		result, insertError := invoiceCollection.InsertOne(ctx, invoice)
+		if insertError != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "invoice creation failed"})
+			return
+		}
+		defer cancel()
+		c.JSON(http.StatusOK, result)
 
 	}
 }
@@ -110,28 +147,28 @@ func UpdateInvoice() gin.HandlerFunc {
 		invoice.Updated_at = time.Now()
 		updateObj = append(updateObj, bson.E{Key: "updated_at", Value: invoice.Updated_at})
 
-		upsert:=true
+		upsert := true
 		opt := options.UpdateOptions{
 			Upsert: &upsert,
 		}
 
-		status:="PENDING"
-		if invoice.Payment_status == nil{
+		status := "PENDING"
+		if invoice.Payment_status == nil {
 			invoice.Payment_status = &status
 		}
-		result,updateError:=invoiceCollection.UpdateOne(
+		result, updateError := invoiceCollection.UpdateOne(
 			ctx,
 			filter,
 			bson.D{
-				{Key:"$set",Value:updateObj},
+				{Key: "$set", Value: updateObj},
 			},
 			&opt,
 		)
-		if updateError!=nil{
-			c.JSON(http.StatusInternalServerError,gin.H{"error":"invoice updatation failed"})
+		if updateError != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "invoice updatation failed"})
 			return
 		}
 		defer cancel()
-		c.JSON(http.StatusOK,result)
+		c.JSON(http.StatusOK, result)
 	}
 }
