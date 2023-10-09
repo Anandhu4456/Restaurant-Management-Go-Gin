@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Anandhu4456/go-restaurant-management/model"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -32,7 +33,16 @@ func GetAllTables() gin.HandlerFunc {
 
 func GetOneTable() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
+		var ctx,cancel = context.WithTimeout(context.Background(),100*time.Second)
+		var table model.Table
+		tableId:=c.Param("table_id")
+		err = tableCollection.FindOne(ctx,bson.M{"table_id":tableId}).Decode(&table)
+		if err!=nil{
+			c.JSON(http.StatusInternalServerError,gin.H{"error":"table not found"})
+			return
+		}
+		defer cancel()
+		c.JSON(http.StatusOK,table)
 	}
 }
 
