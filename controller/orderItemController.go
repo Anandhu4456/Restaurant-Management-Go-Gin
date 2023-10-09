@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type OrderItemPack struct {
@@ -120,6 +121,49 @@ func CreateOrderItem() gin.HandlerFunc {
 
 func UpdateOrderItem() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		var ctx,cancel = context.WithTimeout(context.Background(),100*time.Second)
+		var orderItem model.OrderItem
+		orderItemId:=c.Param("order_item_id")
 
+		filter:=bson.M{"order_item_id":orderItemId}
+
+		err:=c.BindJSON(&orderItem)
+		if err!=nil{
+			c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+			return
+		}
+		var updateObj primitive.D
+
+		if orderItem.Unit_price!=nil{
+			updateObj = append(updateObj,bson.E{Key: "unit_price", Value: orderItem.Unit_price})
+		}
+		if orderItem.Quantity !=nil{
+			updateObj = append(updateObj, bson.E{Key: "quantity",Value: orderItem.Quantity})
+		}
+		if orderItem.Food_id !=nil{
+			updateObj = append(updateObj, bson.E{Key: "food_id",Value: orderItem.Food_id})
+		}
+		orderItem.Updated_at = time.Now()
+		updateObj = append(updateObj, bson.E{Key: "updated_at",Value: orderItem.Updated_at})
+
+		upsert:=true
+
+		opt:=options.UpdateOptions{
+			Upsert: &upsert,
+		}
+		result,updateError:=orderItemsCollection.UpdateOne(
+			ctx,
+			filter,
+			primitive.D{
+				{Key:"$set",Value: updateObj},
+			},
+			&opt,
+		)
+		if updateError!=nil{
+			c.JSON(http.StatusInternalServerError,gin.H{"error":"error occured when updaing order items"})
+			return
+		}
+		defer cancel()
+		c.JSON(http.StatusOK,result)
 	}
 }
