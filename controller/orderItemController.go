@@ -76,6 +76,7 @@ func ItemsByOrderId(id string) (OrderItems []primitive.M, err error) {
 
 	matchStage:=bson.D{{"$match",bson.D{{"order_id",id}}}}
 	lookupStage:= bson.D{{"$lookup",bson.D{{"from","food"},{"localField","food_id",{"foreignFiled","food_id"},{"as","food"}}}}}
+	unwindStage:= bson.D{{"$unwind",bson.D{{"path","$food"},{"preserveNullAndEmptyArrays",true}}}}
 }
 
 func CreateOrderItem() gin.HandlerFunc {
