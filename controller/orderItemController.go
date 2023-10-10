@@ -83,6 +83,22 @@ func ItemsByOrderId(id string) (OrderItems []primitive.M, err error) {
 
 	lookupTableStage:=bson.D{{"$lookup",bson.D{{"from","table"}, {"localField","order.table_id"}, {"foreignField","table_id"}, {"as","table"}}}}
 	unwindTableStage:=bson.D{{"$unwind",bson.D{{"path","$table"}, {"preserveNullAndEmptyArrays",true}}}}
+
+	projectStage:=bson.D{
+		{Key:"$project",Value:bson.D{
+			{Key:"id",Value: 0},
+			{Key:"amount", Value:"$food.price"},
+			{Key:"total_count",Value:1},
+			{Key:"food_name",Value:"$food.name"},
+			{Key:"food_image",Value:"$food.food_image"},
+			{Key:"table_number",Value:"$table.table_number"},
+			{Key:"table_id",Value:"$table.table_id"},
+			{Key:"order_id",Value:"$order.order_id"},
+			{Key:"price",Value:"$food.price"},
+			{Key:"quantity",Value:1},
+
+			}}}
+	
 }
 
 func CreateOrderItem() gin.HandlerFunc {
