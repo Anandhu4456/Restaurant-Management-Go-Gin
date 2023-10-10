@@ -72,7 +72,10 @@ func GetOrderItemsByOrder() gin.HandlerFunc {
 }
 
 func ItemsByOrderId(id string) (OrderItems []primitive.M, err error) {
+	var ctx,cancel = context.WithTimeout(context.Background(),100*time.Second)
 
+	matchStage:=bson.D{{"$match",bson.D{{"order_id",id}}}}
+	lookupStage:= bson.D{{"$lookup",bson.D{{"from","food"},{"localField","food_id",{"foreignFiled","food_id"},{"as","food"}}}}}
 }
 
 func CreateOrderItem() gin.HandlerFunc {
