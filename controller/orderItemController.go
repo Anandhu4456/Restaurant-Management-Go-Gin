@@ -72,33 +72,34 @@ func GetOrderItemsByOrder() gin.HandlerFunc {
 }
 
 func ItemsByOrderId(id string) (OrderItems []primitive.M, err error) {
-	var ctx,cancel = context.WithTimeout(context.Background(),100*time.Second)
+	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
-	matchStage:=bson.D{{"$match",bson.D{{"order_id",id}}}}
-	lookupStage:= bson.D{{"$lookup",bson.D{{"from","food"},{"localField","food_id",{"foreignField","food_id"},{"as","food"}}}}}
-	unwindStage:= bson.D{{"$unwind",bson.D{{"path","$food"},{"preserveNullAndEmptyArrays",true}}}}
+	matchStage := bson.D{{"$match", bson.D{{"order_id", id}}}}
+	lookupStage := bson.D{{"$lookup", bson.D{{"from", "food"}, {"localField", "food_id", {"foreignField", "food_id"}, {"as", "food"}}}}}
+	unwindStage := bson.D{{"$unwind", bson.D{{"path", "$food"}, {"preserveNullAndEmptyArrays", true}}}}
 
-	lookupOrderStage:=bson.D{{"$lookup",bson.D{{"from","order",{"localField","order_id"},{"foreignField","order_id"},{"as","order"}}}}}
-	unwindOrderStage:=bson.D{{"$unwind",bson.D{{"path","$order"}, {"preserveNullAndEmptyArrays",true}}}}
+	lookupOrderStage := bson.D{{"$lookup", bson.D{{"from", "order", {"localField", "order_id"}, {"foreignField", "order_id"}, {"as", "order"}}}}}
+	unwindOrderStage := bson.D{{"$unwind", bson.D{{"path", "$order"}, {"preserveNullAndEmptyArrays", true}}}}
 
-	lookupTableStage:=bson.D{{"$lookup",bson.D{{"from","table"}, {"localField","order.table_id"}, {"foreignField","table_id"}, {"as","table"}}}}
-	unwindTableStage:=bson.D{{"$unwind",bson.D{{"path","$table"}, {"preserveNullAndEmptyArrays",true}}}}
+	lookupTableStage := bson.D{{"$lookup", bson.D{{"from", "table"}, {"localField", "order.table_id"}, {"foreignField", "table_id"}, {"as", "table"}}}}
+	unwindTableStage := bson.D{{"$unwind", bson.D{{"path", "$table"}, {"preserveNullAndEmptyArrays", true}}}}
 
-	projectStage:=bson.D{
-		{Key:"$project",Value:bson.D{
-			{Key:"id",Value: 0},
-			{Key:"amount", Value:"$food.price"},
-			{Key:"total_count",Value:1},
-			{Key:"food_name",Value:"$food.name"},
-			{Key:"food_image",Value:"$food.food_image"},
-			{Key:"table_number",Value:"$table.table_number"},
-			{Key:"table_id",Value:"$table.table_id"},
-			{Key:"order_id",Value:"$order.order_id"},
-			{Key:"price",Value:"$food.price"},
-			{Key:"quantity",Value:1},
+	projectStage := bson.D{
+		{Key: "$project", Value: bson.D{
+			{Key: "id", Value: 0},
+			{Key: "amount", Value: "$food.price"},
+			{Key: "total_count", Value: 1},
+			{Key: "food_name", Value: "$food.name"},
+			{Key: "food_image", Value: "$food.food_image"},
+			{Key: "table_number", Value: "$table.table_number"},
+			{Key: "table_id", Value: "$table.table_id"},
+			{Key: "order_id", Value: "$order.order_id"},
+			{Key: "price", Value: "$food.price"},
+			{Key: "quantity", Value: 1},
+		}}}
 
-			}}}
-	
+	groupStage := bson.D{{"$group", bson.D{{"_id", bson.D{{"order_id", "$order_id"}, {"table_id", "$table_id"}, {"table_number", "$table_number"}}}, {"payment_due", bson.D{{"$sum", "$amount"}}}, {"total_count", bson.D{{"$sum", 1}}}, {"order_items", bson.D{{"$push", "$$ROOT"}}}}}}
+
 }
 
 func CreateOrderItem() gin.HandlerFunc {
@@ -124,7 +125,7 @@ func CreateOrderItem() gin.HandlerFunc {
 
 			validateErr := validate.Struct(orderItem)
 			if validateErr != nil {
-				c.JSON(http.StatusBadRequest,gin.H{"error":validateErr.Error()})
+				c.JSON(http.StatusBadRequest, gin.H{"error": validateErr.Error()})
 				return
 			}
 			orderItem.ID = primitive.NewObjectID()
@@ -132,64 +133,64 @@ func CreateOrderItem() gin.HandlerFunc {
 			orderItem.Updated_at = time.Now()
 			orderItem.Order_item_id = orderItem.ID.Hex()
 
-			var num = toFixed(*orderItem.Unit_price,2)
+			var num = toFixed(*orderItem.Unit_price, 2)
 			orderItem.Unit_price = &num
 			orderItemsToBeInserted = append(orderItemsToBeInserted, orderItem)
 		}
-		insertedOrderItem,err:=orderItemsCollection.InsertMany(ctx,orderItemsToBeInserted)
-		if err!=nil{
+		insertedOrderItem, err := orderItemsCollection.InsertMany(ctx, orderItemsToBeInserted)
+		if err != nil {
 			log.Fatal(err)
 		}
 		defer cancel()
-		c.JSON(http.StatusOK,insertedOrderItem)
+		c.JSON(http.StatusOK, insertedOrderItem)
 	}
 }
 
 func UpdateOrderItem() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var ctx,cancel = context.WithTimeout(context.Background(),100*time.Second)
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 		var orderItem model.OrderItem
-		orderItemId:=c.Param("order_item_id")
+		orderItemId := c.Param("order_item_id")
 
-		filter:=bson.M{"order_item_id":orderItemId}
+		filter := bson.M{"order_item_id": orderItemId}
 
-		err:=c.BindJSON(&orderItem)
-		if err!=nil{
-			c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+		err := c.BindJSON(&orderItem)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		var updateObj primitive.D
 
-		if orderItem.Unit_price!=nil{
-			updateObj = append(updateObj,bson.E{Key: "unit_price", Value: orderItem.Unit_price})
+		if orderItem.Unit_price != nil {
+			updateObj = append(updateObj, bson.E{Key: "unit_price", Value: orderItem.Unit_price})
 		}
-		if orderItem.Quantity !=nil{
-			updateObj = append(updateObj, bson.E{Key: "quantity",Value: orderItem.Quantity})
+		if orderItem.Quantity != nil {
+			updateObj = append(updateObj, bson.E{Key: "quantity", Value: orderItem.Quantity})
 		}
-		if orderItem.Food_id !=nil{
-			updateObj = append(updateObj, bson.E{Key: "food_id",Value: orderItem.Food_id})
+		if orderItem.Food_id != nil {
+			updateObj = append(updateObj, bson.E{Key: "food_id", Value: orderItem.Food_id})
 		}
 		orderItem.Updated_at = time.Now()
-		updateObj = append(updateObj, bson.E{Key: "updated_at",Value: orderItem.Updated_at})
+		updateObj = append(updateObj, bson.E{Key: "updated_at", Value: orderItem.Updated_at})
 
-		upsert:=true
+		upsert := true
 
-		opt:=options.UpdateOptions{
+		opt := options.UpdateOptions{
 			Upsert: &upsert,
 		}
-		result,updateError:=orderItemsCollection.UpdateOne(
+		result, updateError := orderItemsCollection.UpdateOne(
 			ctx,
 			filter,
 			primitive.D{
-				{Key:"$set",Value: updateObj},
+				{Key: "$set", Value: updateObj},
 			},
 			&opt,
 		)
-		if updateError!=nil{
-			c.JSON(http.StatusInternalServerError,gin.H{"error":"error occured when updaing order items"})
+		if updateError != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occured when updaing order items"})
 			return
 		}
 		defer cancel()
-		c.JSON(http.StatusOK,result)
+		c.JSON(http.StatusOK, result)
 	}
 }
