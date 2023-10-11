@@ -74,8 +74,20 @@ func GetOrderItemsByOrder() gin.HandlerFunc {
 func ItemsByOrderId(id string) (OrderItems []primitive.M, err error) {
 	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
-	matchStage := bson.D{{"$match", bson.D{{"order_id", id}}}}
-	lookupStage := bson.D{{"$lookup", bson.D{{"from", "food"}, {"localField", "food_id", {"foreignField", "food_id"}, {"as", "food"}}}}}
+	matchStage := bson.D{
+		{Key:"$match", Value:bson.D{
+			{Key:"order_id",Value: id},
+		}},
+	}
+	
+	lookupStage := bson.D{
+		{Key:"$lookup",Value: bson.D{
+			{Key:"from", Value: "food"},
+			{Key:"localField", Value: "food_id"},
+			{Key:"foreignField", Value: "food_id"},
+			{Key:"as", Value: "food"},
+		}},
+	}
 	unwindStage := bson.D{{"$unwind", bson.D{{"path", "$food"}, {"preserveNullAndEmptyArrays", true}}}}
 
 	lookupOrderStage := bson.D{{"$lookup", bson.D{{"from", "order", {"localField", "order_id"}, {"foreignField", "order_id"}, {"as", "order"}}}}}
