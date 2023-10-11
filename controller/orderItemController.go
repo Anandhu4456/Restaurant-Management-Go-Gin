@@ -88,7 +88,13 @@ func ItemsByOrderId(id string) (OrderItems []primitive.M, err error) {
 			{Key:"as", Value: "food"},
 		}},
 	}
-	unwindStage := bson.D{{"$unwind", bson.D{{"path", "$food"}, {"preserveNullAndEmptyArrays", true}}}}
+	unwindStage := bson.D{
+		{Key:"$unwind",Value:  bson.D{
+			{Key:"path", Value: "$food"},
+			{Key:"preserveNullAndEmptyArrays",Value:  true},
+		}},
+	}
+	
 
 	lookupOrderStage := bson.D{{"$lookup", bson.D{{"from", "order", {"localField", "order_id"}, {"foreignField", "order_id"}, {"as", "order"}}}}}
 	unwindOrderStage := bson.D{{"$unwind", bson.D{{"path", "$order"}, {"preserveNullAndEmptyArrays", true}}}}
