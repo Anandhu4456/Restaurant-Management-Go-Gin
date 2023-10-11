@@ -98,41 +98,57 @@ func ItemsByOrderId(id string) (OrderItems []primitive.M, err error) {
 			{Key: "quantity", Value: 1},
 		}}}
 
-	groupStage := bson.D{{"$group", bson.D{{"_id", bson.D{{"order_id", "$order_id"}, {"table_id", "$table_id"}, {"table_number", "$table_number"}}}, {"payment_due", bson.D{{"$sum", "$amount"}}}, {"total_count", bson.D{{"$sum", 1}}}, {"order_items", bson.D{{"$push", "$$ROOT"}}}}}}
+	groupStage := bson.D{
+		{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: bson.D{
+				{Key: "order_id", Value: "$order_id"},
+				{Key: "table_id", Value: "$table_id"},
+				{Key: "table_number", Value: "$table_number"},
+			}},
+			{Key: "payment_due", Value: bson.D{
+				{Key: "$sum", Value: "$amount"},
+			}},
+			{Key: "total_count", Value: bson.D{
+				{Key: "$sum", Value: 1},
+			}},
+			{Key: "order_items", Value: bson.D{
+				{Key: "$push", Value: "$$ROOT"},
+			}},
+		}},
+	}
 
-	projectStageForGrp:=bson.D{
-		{Key:"$project", Value:bson.D{
-			{Key:"id",Value: 0},
-			{Key:"payment_due",Value:1},
-			{Key: "total_count",Value: 1},
+	projectStageForGrp := bson.D{
+		{Key: "$project", Value: bson.D{
+			{Key: "id", Value: 0},
+			{Key: "payment_due", Value: 1},
+			{Key: "total_count", Value: 1},
 			{Key: "table_number", Value: "$_id.table_number"},
-			{Key: "order_items",Value: 1},
-
+			{Key: "order_items", Value: 1},
 		}}}
-	
-		result,err:=orderItemsCollection.Aggregate(ctx,mongo.Pipeline{
-			matchStage,
-			lookupStage,
-			unwindStage,
-			lookupOrderStage,
-			unwindOrderStage,
-			lookupTableStage,
-			unwindTableStage,
-			
-			projectStage,
-			groupStage,
-			projectStageForGrp,
-		})
-		if err!=nil{
-			panic(err)
-		}
-		err =result.All(ctx,&OrderItems)
-		if err!=nil{
-			panic(err)
-		}
-		defer cancel()
-		return OrderItems,err
-	
+
+	result, err := orderItemsCollection.Aggregate(ctx, mongo.Pipeline{
+		matchStage,
+		lookupStage,
+		unwindStage,
+		lookupOrderStage,
+		unwindOrderStage,
+		lookupTableStage,
+		unwindTableStage,
+
+		projectStage,
+		groupStage,
+		projectStageForGrp,
+	})
+	if err != nil {
+		panic(err)
+	}
+	err = result.All(ctx, &OrderItems)
+	if err != nil {
+		panic(err)
+	}
+	defer cancel()
+	return OrderItems, err
+
 }
 
 func CreateOrderItem() gin.HandlerFunc {
