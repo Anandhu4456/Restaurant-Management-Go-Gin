@@ -41,7 +41,7 @@ func GetAllFoods() gin.HandlerFunc {
 		matchStage := bson.D{{Key: "$match", Value: bson.D{{}}}}
 		filterStage := bson.D{{Key: "$group",Value: bson.D{
 			{Key: "_id",Value:"null"},
-			{Key: "total_count",Value: bson.D{{Key: "$sum",Value: "1"}}},
+			{Key: "total_count",Value: bson.D{{Key: "$sum",Value: 1}}},
 			{Key: "data",Value: bson.D{{Key: "$push",Value: "$$ROOT"}}},
 		}}}
 		projectStage := bson.D{
