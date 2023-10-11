@@ -100,6 +100,39 @@ func ItemsByOrderId(id string) (OrderItems []primitive.M, err error) {
 
 	groupStage := bson.D{{"$group", bson.D{{"_id", bson.D{{"order_id", "$order_id"}, {"table_id", "$table_id"}, {"table_number", "$table_number"}}}, {"payment_due", bson.D{{"$sum", "$amount"}}}, {"total_count", bson.D{{"$sum", 1}}}, {"order_items", bson.D{{"$push", "$$ROOT"}}}}}}
 
+	projectStageForGrp:=bson.D{
+		{Key:"$project", Value:bson.D{
+			{Key:"id",Value: 0},
+			{Key:"payment_due",Value:1},
+			{Key: "total_count",Value: 1},
+			{Key: "table_number", Value: "$_id.table_number"},
+			{Key: "order_items",Value: 1},
+
+		}}}
+	
+		result,err:=orderItemsCollection.Aggregate(ctx,mongo.Pipeline{
+			matchStage,
+			lookupStage,
+			unwindStage,
+			lookupOrderStage,
+			unwindOrderStage,
+			lookupTableStage,
+			unwindTableStage,
+			
+			projectStage,
+			groupStage,
+			projectStageForGrp,
+		})
+		if err!=nil{
+			panic(err)
+		}
+		err =result.All(ctx,&OrderItems)
+		if err!=nil{
+			panic(err)
+		}
+		defer cancel()
+		return OrderItems,err
+	
 }
 
 func CreateOrderItem() gin.HandlerFunc {
