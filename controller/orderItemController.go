@@ -75,40 +75,57 @@ func ItemsByOrderId(id string) (OrderItems []primitive.M, err error) {
 	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
 	matchStage := bson.D{
-		{Key:"$match", Value:bson.D{
-			{Key:"order_id",Value: id},
+		{Key: "$match", Value: bson.D{
+			{Key: "order_id", Value: id},
 		}},
 	}
-	
+
 	lookupStage := bson.D{
-		{Key:"$lookup",Value: bson.D{
-			{Key:"from", Value: "food"},
-			{Key:"localField", Value: "food_id"},
-			{Key:"foreignField", Value: "food_id"},
-			{Key:"as", Value: "food"},
+		{Key: "$lookup", Value: bson.D{
+			{Key: "from", Value: "food"},
+			{Key: "localField", Value: "food_id"},
+			{Key: "foreignField", Value: "food_id"},
+			{Key: "as", Value: "food"},
 		}},
 	}
 	unwindStage := bson.D{
-		{Key:"$unwind",Value:  bson.D{
-			{Key:"path", Value: "$food"},
-			{Key:"preserveNullAndEmptyArrays",Value:  true},
+		{Key: "$unwind", Value: bson.D{
+			{Key: "path", Value: "$food"},
+			{Key: "preserveNullAndEmptyArrays", Value: true},
 		}},
 	}
-	
 
 	lookupOrderStage := bson.D{
-		{Key:"$lookup",Value:  bson.D{
-			{Key:"from",Value:  "order"},
-			{Key:"localField", Value: "order_id"},
-			{Key:"foreignField",Value:  "order_id"},
-			{Key:"as", Value: "order"},
+		{Key: "$lookup", Value: bson.D{
+			{Key: "from", Value: "order"},
+			{Key: "localField", Value: "order_id"},
+			{Key: "foreignField", Value: "order_id"},
+			{Key: "as", Value: "order"},
 		}},
 	}
-	
-	unwindOrderStage := bson.D{{"$unwind", bson.D{{"path", "$order"}, {"preserveNullAndEmptyArrays", true}}}}
 
-	lookupTableStage := bson.D{{"$lookup", bson.D{{"from", "table"}, {"localField", "order.table_id"}, {"foreignField", "table_id"}, {"as", "table"}}}}
-	unwindTableStage := bson.D{{"$unwind", bson.D{{"path", "$table"}, {"preserveNullAndEmptyArrays", true}}}}
+	unwindOrderStage := bson.D{
+		{Key: "$unwind", Value: bson.D{
+			{Key: "path", Value: "$order"},
+			{Key: "preserveNullAndEmptyArrays", Value: true},
+		}},
+	}
+
+	lookupTableStage := bson.D{
+		{Key: "$lookup", Value: bson.D{
+			{Key: "from", Value: "table"},
+			{Key: "localField", Value: "order.table_id"},
+			{Key: "foreignField", Value: "table_id"},
+			{Key: "as", Value: "table"},
+		}},
+	}
+
+	unwindTableStage := bson.D{
+		{Key: "$unwind", Value: bson.D{
+			{Key: "path", Value: "$table"},
+			{Key: "preserveNullAndEmptyArrays", Value: true},
+		}},
+	}
 
 	projectStage := bson.D{
 		{Key: "$project", Value: bson.D{
