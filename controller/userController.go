@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -51,8 +52,12 @@ func GetUsers() gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError,gin.H{"error":"error occured when listing user items"})
 			return
 		}
+		var allUsers[]bson.M
+		if err:=result.All(ctx,&allUsers);err!=nil{
+			log.Fatal(err)
+		}
 		defer cancel()
-		c.JSON(http.StatusOK,result)
+		c.JSON(http.StatusOK,allUsers[0])
 	}
 
 }
