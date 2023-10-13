@@ -1,1 +1,5 @@
 package helper
+
+func GenerateAllToken(){
+	
+}
