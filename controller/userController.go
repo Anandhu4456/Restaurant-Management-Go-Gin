@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -179,13 +180,20 @@ func Login() gin.HandlerFunc {
 }
 
 func HashPassword(password string) string {
-	bytes,err:=bcrypt.GenerateFromPassword([]byte(password),10)
-	if err!=nil{
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 10)
+	if err != nil {
 		log.Panic(err)
 	}
 	return string(bytes)
 }
 
 func VerifyPassword(userPassword, providedPassword string) (bool, string) {
+	err := bcrypt.CompareHashAndPassword([]byte(providedPassword), []byte(userPassword))
+	check := true
 
+	msg := fmt.Sprintf("login password doesn't match")
+	if err!=nil{
+		check = false
+	}
+	return check,msg
 }
