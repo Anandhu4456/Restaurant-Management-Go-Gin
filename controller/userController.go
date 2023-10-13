@@ -89,10 +89,12 @@ func Signup() gin.HandlerFunc {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
 		var user model.User
+		// converting json data to golang understandable data
 		if err := c.BindJSON(&user); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		// struct validation
 		validationErr := validate.Struct(user)
 		if validationErr != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
@@ -141,7 +143,39 @@ func Signup() gin.HandlerFunc {
 
 func Login() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		var ctx,cancel = context.WithTimeout(context.Background(),100*time.Second)
 
+		var user model.User
+		var foundUser model.User
+
+		if err:=c.BindJSON(&user);err!=nil{
+			c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+			return
+		}
+		// find user with the email
+		err:=userCollection.FindOne(ctx,bson.M{"email":user.Email}).Decode(&foundUser)
+		defer cancel()
+		if err!=nil{
+			c.JSON(http.StatusInternalServerError,gin.H{"error":"user not found"})
+			return
+		}
+		// password verification
+		passwordIsValid,msg :=VerifyPassword(*user.Password, *foundUser.Password)
+		if passwordIsValid!=true{
+			c.JSON(http.StatusInternalServerError,gin.H{"error":msg})
+			return
+		}
+
+		token,refreshToken,_:=helper.GenerateAllToken(*foundUser.Email,*foundUser.First_name,*foundUser.Last_name, *foundUser.User_id)
+		foundUser.Token = &token
+		foundUser.Refresh_token = &refreshToken
+
+		// update token and refreshtoken
+
+		helper.UpdateAllTokens(token,refreshToken,foundUser.User_id)
+
+
+		c.JSON(http.StatusOK,foundUser)
 	}
 }
 
