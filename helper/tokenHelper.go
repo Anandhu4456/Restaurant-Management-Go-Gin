@@ -5,5 +5,9 @@ func GenerateAllToken(){
 }
 
 func UpdateAllTokens(){
+
+}
+
+func ValidateToken(){
 	
 }

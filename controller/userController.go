@@ -190,10 +190,11 @@ func HashPassword(password string) string {
 func VerifyPassword(userPassword, providedPassword string) (bool, string) {
 	err := bcrypt.CompareHashAndPassword([]byte(providedPassword), []byte(userPassword))
 	check := true
+	msg := ""
 
-	msg := fmt.Sprintf("login password doesn't match")
-	if err!=nil{
+	if err != nil {
+		msg = fmt.Sprintf("login password doesn't match")
 		check = false
 	}
-	return check,msg
+	return check, msg
 }
