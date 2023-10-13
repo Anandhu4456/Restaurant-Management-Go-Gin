@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"go/token"
 	"log"
 	"net/http"
 	"strconv"
@@ -15,6 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var userCollection *mongo.Collection = database.OpenCollection(database.Client, "user")
@@ -125,62 +125,65 @@ func Signup() gin.HandlerFunc {
 		user.ID = primitive.NewObjectID()
 		user.User_id = user.ID.Hex()
 
-		token,refreshToken,_:=helper.GenerateAllToken(*user.Email, *user.First_name, *user.Last_name, user.User_id)
+		token, refreshToken, _ := helper.GenerateAllToken(*user.Email, *user.First_name, *user.Last_name, user.User_id)
 		user.Token = &token
 		user.Refresh_token = &refreshToken
 
-		resultInsertionNumber,insertionErr:=userCollection.InsertOne(ctx,user)
-		if insertionErr!=nil{
-			c.JSON(http.StatusInternalServerError,gin.H{"error":"user item not created"})
+		resultInsertionNumber, insertionErr := userCollection.InsertOne(ctx, user)
+		if insertionErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user item not created"})
 			return
 		}
 		defer cancel()
 
-		c.JSON(http.StatusOK,resultInsertionNumber)
+		c.JSON(http.StatusOK, resultInsertionNumber)
 
 	}
 }
 
 func Login() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var ctx,cancel = context.WithTimeout(context.Background(),100*time.Second)
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
 		var user model.User
 		var foundUser model.User
 
-		if err:=c.BindJSON(&user);err!=nil{
-			c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+		if err := c.BindJSON(&user); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		// find user with the email
-		err:=userCollection.FindOne(ctx,bson.M{"email":user.Email}).Decode(&foundUser)
+		err := userCollection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&foundUser)
 		defer cancel()
-		if err!=nil{
-			c.JSON(http.StatusInternalServerError,gin.H{"error":"user not found"})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user not found"})
 			return
 		}
 		// password verification
-		passwordIsValid,msg :=VerifyPassword(*user.Password, *foundUser.Password)
-		if passwordIsValid!=true{
-			c.JSON(http.StatusInternalServerError,gin.H{"error":msg})
+		passwordIsValid, msg := VerifyPassword(*user.Password, *foundUser.Password)
+		if passwordIsValid != true {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 			return
 		}
 
-		token,refreshToken,_:=helper.GenerateAllToken(*foundUser.Email,*foundUser.First_name,*foundUser.Last_name, *foundUser.User_id)
+		token, refreshToken, _ := helper.GenerateAllToken(*foundUser.Email, *foundUser.First_name, *foundUser.Last_name, *foundUser.User_id)
 		foundUser.Token = &token
 		foundUser.Refresh_token = &refreshToken
 
 		// update token and refreshtoken
 
-		helper.UpdateAllTokens(token,refreshToken,foundUser.User_id)
+		helper.UpdateAllTokens(token, refreshToken, foundUser.User_id)
 
-
-		c.JSON(http.StatusOK,foundUser)
+		c.JSON(http.StatusOK, foundUser)
 	}
 }
 
 func HashPassword(password string) string {
-
+	bytes,err:=bcrypt.GenerateFromPassword([]byte(password),10)
+	if err!=nil{
+		log.Panic(err)
+	}
+	return string(bytes)
 }
 
 func VerifyPassword(userPassword, providedPassword string) (bool, string) {
