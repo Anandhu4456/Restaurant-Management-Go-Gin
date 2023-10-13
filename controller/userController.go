@@ -83,7 +83,32 @@ func GetUser() gin.HandlerFunc {
 
 func Signup() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		var ctx,cancel = context.WithTimeout(context.Background(),100*time.Second)
 
+		var user model.User
+		if err:=c.BindJSON(&user);err!=nil{
+			c.JSON(http.StatusBadRequest,gin.H{"error":err.Error()})
+			return
+		}
+		validationErr:=validate.Struct(user)
+		if validationErr!=nil{
+			c.JSON(http.StatusBadRequest,gin.H{"error":validationErr.Error()})
+			return
+		}
+		count,countErr:=userCollection.CountDocuments(ctx,bson.M{"email":user.Email})
+		if countErr!=nil{
+			log.Panic(countErr)
+			c.JSON(http.StatusInternalServerError,gin.H{"error":"error occured when checking email"})
+			return
+		}
+		password:=HashPassword(*user.Password)
+		user.Password = &password
+
+		phone,phoneErr:=userCollection.CountDocuments(ctx,bson.M{"phone":user.Phone})
+		if phoneErr!=nil{
+			log.Panic(phoneErr)
+			c.JSON(http.StatusInternalServerError,gin.H{"error":"error occured when checking phone number"})
+		}
 	}
 }
 
