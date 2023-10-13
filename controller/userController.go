@@ -11,6 +11,7 @@ import (
 	"github.com/Anandhu4456/go-restaurant-management/model"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -115,6 +116,12 @@ func Signup() gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError,gin.H{"error":"this email or phone number already exist"})
 			return
 		}
+		user.Created_at = time.Now()
+		user.Updated_at = time.Now()
+		user.ID = primitive.NewObjectID()
+		user.User_id = user.ID.Hex()
+
+		
 	}
 }
 
