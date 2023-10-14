@@ -1,13 +1,17 @@
 package helper
 
 import (
+	"context"
 	"log"
 	"os"
 	"time"
 
 	"github.com/Anandhu4456/go-restaurant-management/database"
 	"github.com/golang-jwt/jwt"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type SignedDetails struct {
@@ -32,25 +36,53 @@ func GenerateAllToken(email, firstName, lastName, uid string) (signedToken strin
 		},
 	}
 
-	refreshClaims :=&SignedDetails{
+	refreshClaims := &SignedDetails{
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Local().Add(time.Hour *time.Duration(48)).Unix(),
+			ExpiresAt: time.Now().Local().Add(time.Hour * time.Duration(48)).Unix(),
 		},
 	}
-	token,err :=jwt.NewWithClaims(jwt.SigningMethodHS256,claims).SignedString([]byte(SECRET_KEY))
-	if err!=nil{
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(SECRET_KEY))
+	if err != nil {
 		log.Panic(err)
 		return
 	}
-	refreshToken,err :=jwt.NewWithClaims(jwt.SigningMethodES256,refreshClaims).SignedString([]byte(SECRET_KEY))
-	if err!=nil{
+	refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodES256, refreshClaims).SignedString([]byte(SECRET_KEY))
+	if err != nil {
 		log.Panic(err)
 		return
 	}
-	return token,refreshToken,err
+	return token, refreshToken, err
 }
 
-func UpdateAllTokens() {
+func UpdateAllTokens(signedToken, signedRefreshToken, userId string) {
+	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+
+	var updateObj primitive.D
+
+	updateObj = append(updateObj, bson.E{Key: "token", Value: signedToken})
+	updateObj = append(updateObj, bson.E{Key: "refresh_token", Value: signedRefreshToken})
+
+	Updated_at := time.Now()
+	updateObj = append(updateObj, bson.E{Key: "updated_at", Value: Updated_at})
+
+	upsert := true
+	filter := bson.M{"user_id": userId}
+	opt := options.UpdateOptions{
+		Upsert: &upsert,
+	}
+	_, updateErr := userCollection.UpdateOne(
+		ctx,
+		filter,
+		bson.D{
+			{Key: "$set", Value: updateObj},
+		},
+		&opt,
+	)
+	defer cancel()
+	if updateErr != nil {
+		log.Panic(updateErr)
+		return
+	}
 
 }
 
