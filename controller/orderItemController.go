@@ -29,7 +29,6 @@ func GetOrderItems() gin.HandlerFunc {
 		result, err := orderItemsCollection.Find(context.TODO(), bson.M{})
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occured when fetching order items"})
-			return
 		}
 		var allOrderItem []bson.M
 		err = result.All(ctx, &allOrderItem)
@@ -49,11 +48,12 @@ func GetOneOrderItem() gin.HandlerFunc {
 		var orderItemId = c.Param("order_item_id")
 		var orderItem model.OrderItem
 		err := orderItemsCollection.FindOne(ctx, bson.M{"order_item_id": orderItemId}).Decode(&orderItem)
+		defer cancel()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "couldnt get order item id"})
 			return
 		}
-		defer cancel()
+		// defer cancel()
 		c.JSON(http.StatusOK, orderItem)
 	}
 }
@@ -203,6 +203,7 @@ func CreateOrderItem() gin.HandlerFunc {
 		var orderItemPack OrderItemPack
 
 		err := c.BindJSON(&orderItemPack)
+		defer cancel()
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -230,10 +231,11 @@ func CreateOrderItem() gin.HandlerFunc {
 			orderItemsToBeInserted = append(orderItemsToBeInserted, orderItem)
 		}
 		insertedOrderItem, err := orderItemsCollection.InsertMany(ctx, orderItemsToBeInserted)
+		defer cancel()
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer cancel()
+		// defer cancel()
 		c.JSON(http.StatusOK, insertedOrderItem)
 	}
 }
@@ -247,6 +249,7 @@ func UpdateOrderItem() gin.HandlerFunc {
 		filter := bson.M{"order_item_id": orderItemId}
 
 		err := c.BindJSON(&orderItem)
+		defer cancel()
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return

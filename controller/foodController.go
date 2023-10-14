@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"math"
 	"net/http"
@@ -35,7 +34,7 @@ func GetAllFoods() gin.HandlerFunc {
 		if err != nil || page < 1 {
 			page = 1
 		}
-		startIndex := (page - 1) * recordPerPage
+		var startIndex = (page - 1) * recordPerPage
 		startIndex, err = strconv.Atoi(c.Query("startIndex"))
 		if err!=nil{
 			log.Panic(err)
@@ -104,8 +103,8 @@ func CreateFood() gin.HandlerFunc {
 		err = menuCollection.FindOne(ctx, bson.M{"menu_id": food.Menu_id}).Decode(&menu)
 		defer cancel()
 		if err != nil {
-			msg := fmt.Sprintf("menu not found")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			// msg := fmt.Sprintf("menu not found")
+			c.JSON(http.StatusInternalServerError, gin.H{"error":"menu not found"})
 			return
 		}
 		food.Created_at = time.Now()
@@ -117,8 +116,8 @@ func CreateFood() gin.HandlerFunc {
 
 		result, insertError := foodCollection.InsertOne(ctx, food)
 		if insertError != nil {
-			msg := fmt.Sprintf("food was not created")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			// msg := fmt.Sprintf("food was not created")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "food was not created"})
 			return
 		}
 		defer cancel()
@@ -164,7 +163,7 @@ func UpdateFood() gin.HandlerFunc {
 			}
 			updateObj = append(updateObj, bson.E{Key: "menu", Value:food.Menu_id})
 		}
-
+		defer cancel()
 		food.Updated_at = time.Now()
 		updateObj = append(updateObj, bson.E{Key: "updated_at",Value: food.Updated_at})
 

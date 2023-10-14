@@ -32,6 +32,7 @@ func GetInvoices() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 		result, err := invoiceCollection.Find(context.TODO(), bson.M{})
+		defer cancel()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occured when fetching invoices"})
 			return
@@ -42,7 +43,7 @@ func GetInvoices() gin.HandlerFunc {
 			log.Fatal(err)
 			return
 		}
-		defer cancel()
+		// defer cancel()
 		c.JSON(http.StatusOK, result)
 	}
 }
@@ -62,6 +63,9 @@ func GetOneInvoice() gin.HandlerFunc {
 		var invoiceView InvoiceViewFormat
 
 		allOrderItems, err := ItemsByOrderId(*invoice.Order_id)
+		if err != nil {
+			log.Panic(err)
+		}
 		invoiceView.Order_id = *invoice.Order_id
 		invoiceView.Payment_due_date = invoice.Payment_due_date
 
@@ -71,7 +75,7 @@ func GetOneInvoice() gin.HandlerFunc {
 		}
 
 		invoiceView.Invoice_id = invoice.Invoice_id
-		invoiceView.Payment_status = *&invoice.Payment_status
+		invoiceView.Payment_status = invoice.Payment_status
 		invoiceView.Payment_due = allOrderItems[0]["payment_due"]
 		invoiceView.Table_number = allOrderItems[0]["table_number"]
 		invoiceView.Order_details = allOrderItems[0]["order_items"]
@@ -89,9 +93,9 @@ func CreateInvoice() gin.HandlerFunc {
 		err := c.BindJSON(&invoice)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
 		}
 		err = orderCollection.FindOne(ctx, bson.M{"order_id": invoice.Order_id}).Decode(&order)
+		defer cancel()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "order not found"})
 			return
@@ -106,9 +110,9 @@ func CreateInvoice() gin.HandlerFunc {
 		invoice.ID = primitive.NewObjectID()
 		invoice.Invoice_id = invoice.ID.Hex()
 
-		validateError:=validate.Struct(invoice)
-		if validateError!=nil{
-			c.JSON(http.StatusBadRequest,gin.H{"error":validateError.Error()})
+		validateError := validate.Struct(invoice)
+		if validateError != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": validateError.Error()})
 			return
 		}
 
@@ -131,7 +135,7 @@ func UpdateInvoice() gin.HandlerFunc {
 		var invoice model.Invoice
 		if err := c.BindJSON(&invoice); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
+
 		}
 		filter := bson.M{"invoice_id": invoiceId}
 		var updateObj primitive.D
@@ -156,6 +160,7 @@ func UpdateInvoice() gin.HandlerFunc {
 		if invoice.Payment_status == nil {
 			invoice.Payment_status = &status
 		}
+		defer cancel()
 		result, updateError := invoiceCollection.UpdateOne(
 			ctx,
 			filter,
@@ -168,7 +173,7 @@ func UpdateInvoice() gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "invoice updatation failed"})
 			return
 		}
-		defer cancel()
+		// defer cancel()
 		c.JSON(http.StatusOK, result)
 	}
 }

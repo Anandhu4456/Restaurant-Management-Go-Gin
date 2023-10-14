@@ -39,6 +39,7 @@ func GetOneMenu() gin.HandlerFunc {
 		var menu model.Menu
 		menuId := c.Param("menu_id")
 		err := menuCollection.FindOne(ctx, bson.M{"menu_id": menuId}).Decode(&menu)
+		defer cancel()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occured when fetching the menu"})
 			return
@@ -55,9 +56,8 @@ func CreateMenu() gin.HandlerFunc {
 		err := c.BindJSON(&menu)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, bson.M{"error": err.Error()})
-			return
 		}
-
+		defer cancel()
 		validateError := validate.Struct(menu)
 		if validateError != nil {
 			c.JSON(http.StatusBadRequest, bson.M{"error": err.Error()})
@@ -70,6 +70,7 @@ func CreateMenu() gin.HandlerFunc {
 		menu.Menu_id = menu.ID.Hex()
 
 		result, insertErr := menuCollection.InsertOne(ctx, menu)
+		defer cancel()
 		if insertErr != nil {
 			// msg:=fmt.Sprintf("error while creating menu")
 			// c.JSON(http.StatusInternalServerError,bson.M{"error":msg})
@@ -89,7 +90,6 @@ func UpdateMenu() gin.HandlerFunc {
 		err := c.BindJSON(&menu)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, bson.M{"error": err.Error()})
-			return
 		}
 		menuId := c.Param("menu_id")
 		filter := bson.M{"menu_id": menuId}
@@ -114,6 +114,7 @@ func UpdateMenu() gin.HandlerFunc {
 		opt:=options.UpdateOptions{
 			Upsert: &upsert,
 		}
+		defer cancel()
 		result,updateErr:=menuCollection.UpdateOne(
 			ctx,
 			filter,

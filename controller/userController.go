@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -32,10 +31,10 @@ func GetUsers() gin.HandlerFunc {
 		if err1 != nil || page < 1 {
 			page = 1
 		}
-		startIndex := (page - 1) * recordPerPage
+		var startIndex = (page - 1) * recordPerPage
 		startIndex, err2 := strconv.Atoi(c.Query("startIndex"))
 		if err2 != nil {
-			// error
+			log.Panic(err)
 		}
 
 		matchStage := bson.D{{Key: "$match", Value: bson.D{{}}}}
@@ -97,11 +96,11 @@ func Signup() gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 		// struct validation
-		validationErr := validate.Struct(user)	
+		validationErr := validate.Struct(user)
 		if validationErr != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
 		}
-		count, countErr := userCollection.CountDocuments(ctx, bson.M{"email": user.Email})
+		var count, countErr = userCollection.CountDocuments(ctx, bson.M{"email": user.Email})
 		defer cancel()
 		if countErr != nil {
 			log.Panic(countErr)
@@ -110,7 +109,7 @@ func Signup() gin.HandlerFunc {
 		}
 		password := HashPassword(*user.Password)
 		user.Password = &password
-		
+
 		count, phoneErr := userCollection.CountDocuments(ctx, bson.M{"phone": user.Phone})
 		if phoneErr != nil {
 			defer cancel()
@@ -192,7 +191,7 @@ func VerifyPassword(userPassword, providedPassword string) (bool, string) {
 	msg := ""
 
 	if err != nil {
-		msg = fmt.Sprintf("login password doesn't match")
+		msg = "login password doesn't match"
 		check = false
 	}
 	return check, msg

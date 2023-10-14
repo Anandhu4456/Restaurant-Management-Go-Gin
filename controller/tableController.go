@@ -19,10 +19,12 @@ func GetAllTables() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 		result, err := tableCollection.Find(context.TODO(), bson.M{})
+		defer cancel()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occured when listing tables"})
 			return
 		}
+		
 		var allTables []bson.M
 		err = result.All(ctx, &allTables)
 		if err != nil {
@@ -39,6 +41,7 @@ func GetOneTable() gin.HandlerFunc {
 		var table model.Table
 		tableId := c.Param("table_id")
 		err = tableCollection.FindOne(ctx, bson.M{"table_id": tableId}).Decode(&table)
+		defer cancel()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "table not found"})
 			return
@@ -53,6 +56,7 @@ func CreateTable() gin.HandlerFunc {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 		var table model.Table
 		err := c.BindJSON(&table)
+		defer cancel()
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -85,6 +89,7 @@ func UpdateTable() gin.HandlerFunc {
 		var table model.Table
 
 		err := c.BindJSON(&table)
+		defer cancel()
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
