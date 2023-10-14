@@ -37,6 +37,9 @@ func GetAllFoods() gin.HandlerFunc {
 		}
 		startIndex := (page - 1) * recordPerPage
 		startIndex, err = strconv.Atoi(c.Query("startIndex"))
+		if err!=nil{
+			log.Panic(err)
+		}
 
 		matchStage := bson.D{{Key: "$match", Value: bson.D{{}}}}
 		filterStage := bson.D{{Key: "$group",Value: bson.D{
@@ -93,12 +96,10 @@ func CreateFood() gin.HandlerFunc {
 
 		if err = c.BindJSON(&food); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
 		}
 		validationError := validate.Struct(food)
 		if validationError != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
 		}
 		err = menuCollection.FindOne(ctx, bson.M{"menu_id": food.Menu_id}).Decode(&menu)
 		defer cancel()
@@ -144,7 +145,6 @@ func UpdateFood() gin.HandlerFunc {
 		foodID := c.Param("food_id")
 		if err := c.BindJSON(&food); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
 		}
 		var updateObj primitive.D
 		if food.Name != nil {

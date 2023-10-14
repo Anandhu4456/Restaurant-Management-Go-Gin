@@ -55,6 +55,7 @@ func GetUsers() gin.HandlerFunc {
 			matchStage, projectStage})
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occured when listing user items"})
+			defer cancel()
 			return
 		}
 		var allUsers []bson.M
@@ -77,6 +78,7 @@ func GetUser() gin.HandlerFunc {
 
 		err := userCollection.FindOne(ctx, bson.M{"user_id": userId}).Decode(&user)
 		if err != nil {
+			defer cancel()
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "user not found"})
 			return
 		}
@@ -93,13 +95,11 @@ func Signup() gin.HandlerFunc {
 		// converting json data to golang understandable data
 		if err := c.BindJSON(&user); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
 		}
 		// struct validation
-		validationErr := validate.Struct(user)
+		validationErr := validate.Struct(user)	
 		if validationErr != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
-			return
 		}
 		count, countErr := userCollection.CountDocuments(ctx, bson.M{"email": user.Email})
 		defer cancel()
@@ -110,7 +110,7 @@ func Signup() gin.HandlerFunc {
 		}
 		password := HashPassword(*user.Password)
 		user.Password = &password
-
+		
 		count, phoneErr := userCollection.CountDocuments(ctx, bson.M{"phone": user.Phone})
 		if phoneErr != nil {
 			defer cancel()
@@ -151,7 +151,6 @@ func Login() gin.HandlerFunc {
 
 		if err := c.BindJSON(&user); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
 		}
 		// find user with the email
 		err := userCollection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&foundUser)
@@ -162,12 +161,12 @@ func Login() gin.HandlerFunc {
 		}
 		// password verification
 		passwordIsValid, msg := VerifyPassword(*user.Password, *foundUser.Password)
-		if passwordIsValid != true {
+		if !passwordIsValid {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 			return
 		}
 
-		token, refreshToken, _ := helper.GenerateAllToken(*foundUser.Email, *foundUser.First_name, *foundUser.Last_name, *foundUser.User_id)
+		token, refreshToken, _ := helper.GenerateAllToken(*foundUser.Email, *foundUser.First_name, *foundUser.Last_name, foundUser.User_id)
 		foundUser.Token = &token
 		foundUser.Refresh_token = &refreshToken
 
